@@ -65,7 +65,18 @@ begin
     puts
     puts g.fetch('html_url')
     puts
-    puts Gist.read_gist(g.fetch('id'))
+    begin
+      puts Gist.read_gist(g.fetch('id'))
+    rescue RuntimeError
+      if $!.message =~ /Gist with id of.*does not exist/
+        LOGGER.warn { "api claims gist doesn't exist, sometimes this happens, trying a backup plan..." }
+        raw_url = g.fetch('files').to_a.first.last.fetch('raw_url')
+        response = RestClient.get raw_url
+        puts response.body
+      else
+        raise
+      end
+    end
     puts
     $stdout.write "Delete? (y for yes, o to open, any other key to not delete) "
     resp = $stdin.gets.chomp
